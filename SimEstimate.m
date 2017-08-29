@@ -1,11 +1,23 @@
+%% Particle Filter State Space Model Evaluation
+% t= time vector
+% x0=inizial state
+% y= observations
+% f=state transition function
+% g= obesrvation function
+%pf= particle filter structure
+% pf.np= number of particles
+% pf.noise.type='Gaussian';
+%pf.noise.sigma_w= std of state gaussian noise
 
 
 function [xh,yh,xp,yp,wp]=SimEstimate(t,x0,y,f,g,pf)
 
+
+
 T=length(t);                    % signa length
 Dt=mean(diff(t));               % sampling time
 nx=length(x0);                  % number of states
-y0=g(t(1),x0);                  % inizial observation
+y0=g(t(1),x0);               % inizial observation
 ny=length(y0);                  % number of observation
 
 np = pf.np;                              % number of particles
@@ -37,7 +49,7 @@ yh(:,1)=y0;
 for i=1:np                          % simulate initial particles
     xp(:,1,i)=x0+gen_sys_noise(pf.noise.sigma_w);
 end
-wp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
+wp(:,1,:) = repmat(1/np, np, 1);           % all particles have the same weight
 
    
 wk=1/np*ones(np,1);   

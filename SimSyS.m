@@ -5,25 +5,26 @@
 % g= obesrvation function
 % noise= noise structure
 % noise.type='Gaussian';
-% noise.sigma_w= std of state gaussian noise
-% noise.sigma_v==std of observation gaussian noise
+%noise.sigma_w= std of state gaussian noise
+%noise.sigma_v==std of observation gaussian noise
 
 
 % Example:
 % 2 states: state 1 equal to time, state 2 equal to sin at 0.03 Hz
 % obervation is the state 2
-% t=1:60
-% x0=[0 0];
-% f = @(t, x) [1; sin(x(1)*2*pi*0.03)]
-% g=@(t,x)[x(2)]
+%t=1:60
+%x0=[0 0];
+%f = @(t, x) [1; sin(x(1)*2*pi*0.03)]
+%g=@(t,x)[x(2)]
 
 function [x,y]=SimSyS(t,x0,f,g,noise)
 
 T=length(t);                    % simulation length
 Dt=mean(diff(t));               % sampling time
 nx=length(x0);                  % number of states
-y0=g(t(1),x0);                  % inizial observation
+y0=g(t(1),x0);               % inizial observation
 ny=length(y0);                  % number of observation
+
 
 % initialization of state, observation and noise
 x = zeros(nx,T);               
@@ -33,6 +34,8 @@ v = zeros(ny,T);
 x(:,1)=x0;
 y(:,1)=y0;
 
+
+
 % Noise generator function
   switch noise.type
       
@@ -41,6 +44,10 @@ y(:,1)=y0;
       gen_obs_noise = @(z) normrnd(0, z);
       
   end
+
+
+
+
 
 % Simulate system
 for k = 2:T
