@@ -47,7 +47,7 @@ for k = 2:T
  
    w(:,k) = gen_state_noise(noise.sigma_w);              % simulate process noise
    v(:,k) = gen_obs_noise(noise.sigma_v);               % simulate observation noise
-   x(:,k) = x(:,k-1)+f(k, x(:,k-1))*Dt+w(:,k);     % simulate state
+   x(:,k) = (x(:,k-1)+f(k, x(:,k-1))+w(:,k))*Dt;     % simulate state
    y(:,k) = g(k, x(:,k))+v(:,k);     % simulate observation
    
 end

@@ -31,7 +31,7 @@ function [xh,yh,xp,yp,wp]=EstSys(t,x0,y,f,g,pf)
     switch pf.noise.type
 
         case 'Gaussian'
-            gen_sys_noise = @(z) normrnd(0,z);
+            gen_state_noise = @(z) normrnd(0,z);
             p_obs_noise   = @(v,u,z) normpdf(v,u,z);
 
 
@@ -45,7 +45,7 @@ function [xh,yh,xp,yp,wp]=EstSys(t,x0,y,f,g,pf)
     nx=size(xh,1);
     for j=1:nx
         for i=1:np                          % simulate initial particles
-            xp(j,1,i)=x0(j)+gen_sys_noise(pf.noise.sigma_w(j));
+            xp(j,1,i)=x0(j)+gen_state_noise(pf.noise.sigma_w(j));
         end
     end
     wp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
@@ -54,13 +54,18 @@ function [xh,yh,xp,yp,wp]=EstSys(t,x0,y,f,g,pf)
     %% Estimate state
     for k = 2:T
         fprintf('Time point = %d/%d\n',k,T);
-
-
+        
+        
         for i=1:np
-            xp(:,k,i)=xp(:,k-1,i)+f(k,xp(:,k-1,i))*Dt;
+            w=zeros(nx,1);
+            for j=1:nx
+                w(j)=gen_state_noise(pf.noise.sigma_w(j));
+            end
+            xp(:,k,i)=xp(:,k-1,i)+(f(k,xp(:,k-1,i))+w)*Dt;
             yp(:,k,i)=g(k,xp(:,k,i));
             % weights (when using the PRIOR pdf): eq 63, Ref 1
-            wp(k,i) = wk(i) * p_obs_noise (abs(squeeze(yp(:,k,i))-y(:,k)),0,pf.noise.sigma_v);  %%%% mean of p
+            wp(k,i) = wk(i) *(p_obs_noise (y(:,k)-yp(:,k,i),0,pf.noise.sigma_v)+1e-300);  %%%% mean of p
+            
         end
 
 
@@ -68,11 +73,18 @@ function [xh,yh,xp,yp,wp]=EstSys(t,x0,y,f,g,pf)
         wk=wp(k,:)./sum(wp(k,:),2);
         xk=squeeze(xp(:,k,:));
 
+        
+        Neff=1/sum(wk.^2);
+        resample_percentage=0.5;
+        Nt=resample_percentage*np;
+        if Neff<Nt
         %% Resampling
-        % remove this condition and sample on each iteration:
-        [xp(:,k,:), wk] = resample(xk, wk,pf.resampling_strategy);
         disp('Resampling ...')
-
+        % remove this condition and sample on each iteration:
+        [xp(:,k,:), wk,idx] = resample(xk, wk','systematic_resampling');
+%         [~,idx]=sort(wk);
+%         idx = randsample(1:np, np, with_replacement, wk(idx(idx/2+1:end)));
+       end
         %% Compute estimated state
 
         xh(:,k) = squeeze(xp(:,k,:))*wk';
@@ -129,4 +141,6 @@ function [xk, wk, idx] = resample(xk, wk, resampling_strategy)
         otherwise
             error('Resampling strategy not implemented')
     end
+      xk=xk(:,idx);
+       wk=repmat(1/Ns,1,Ns);
 end

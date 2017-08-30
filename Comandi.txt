@@ -1,0 +1,5 @@
+Stato: git status
+Aggiungere all'index: git add .
+Aggiungere all'head: git commit -m "commento"
+Aggiungere online: git push origin master
+Scaricare dall'online: git pull
