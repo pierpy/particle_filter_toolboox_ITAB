@@ -64,7 +64,7 @@ function [xh,yh,xp,yp,wp]=EstSys(t,x0,y,f,g,pf)
             xp(:,k,i)=xp(:,k-1,i)+(f(k,xp(:,k-1,i))+w)*Dt;
             yp(:,k,i)=g(k,xp(:,k,i));
             % weights (when using the PRIOR pdf): eq 63, Ref 1
-            wp(k,i) = wk(i) *(p_obs_noise (y(:,k)-yp(:,k,i),0,pf.noise.sigma_v)+1e-300);  %%%% mean of p
+            wp(k,i) = wk(i) *mean((p_obs_noise (y(:,k)-yp(:,k,i),0,pf.noise.sigma_v)+1e-300));  %%%% mean of p's yp given xp
             
         end
 
