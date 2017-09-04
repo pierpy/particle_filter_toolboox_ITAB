@@ -1,7 +1,8 @@
-function PlotPF_Res(t,x,xh,xp,wp,y,yh)
+function PlotPF_Res(t,p,ph,pp,wpp,x,xh,xp,wxp,y,yh)
 
     nx=size(xh,1);
     ny=size(yh,1);
+    npar=size(ph,1);
     % plot of the state vs estimated state by the particle filter vs particle paths
     close all
     for i=1:nx
@@ -12,6 +13,18 @@ function PlotPF_Res(t,x,xh,xp,wp,y,yh)
     h3 = plot(t,xh(i,:),'b','LineWidth',2);
     legend([h2 h3 h1(1)],'State','Estimated State','Particle Paths');
     title(['State ',num2str(i)],'FontSize',14);
+    xlabel('Time (s)')
+    end
+    % plot of parameter vs estimated parameter by the particle filter vs
+    % particle paths
+    for i=1:npar
+    figure
+    hold on;
+    h1 = plot(t,squeeze(pp(i,:,:)),'o','Color',[0.4 0.4 0.4],'MarkerSize',3); 
+    h2 = line([t(1), t(end)], [p(i), p(i)], 'Color', 'r', 'LineWidth', 2);
+    h3 = plot(t,ph(i,:),'b','LineWidth',2);
+    legend([h2 h3 h1(1)],'Parameter','Estimated Parameter','Particle Paths');
+    title(['Parameter ',num2str(i)],'FontSize',14);
     xlabel('Time (s)')
     end
     % plot of the observation vs filtered observation by the particle filter
