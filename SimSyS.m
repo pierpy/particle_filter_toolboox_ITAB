@@ -18,7 +18,7 @@
 % f = @(t,p, x) [1; p(1)*sin(x(1)*2*pi*0.03)]
 % g=@(t,p,x)[x(2)]
 
-function [x,y]=SimSyS(t,x0,p0,f,g,noise)
+function [x,y]=SimSyS(t,x0,p0,u,f,g,noise)
 
 T=length(t);                    % simulation length
 Dt=mean(diff(t));               % sampling time
@@ -46,9 +46,15 @@ y(:,1)=y0;
 % Simulate system
 for k = 2:T
  
-   w(:,k) = gen_state_noise(noise.sigma_w);              % simulate process noise
-   v(:,k) = gen_obs_noise(noise.sigma_v);               % simulate observation noise
-   x(:,k) = (x(:,k-1)+f(k,p0, x(:,k-1))+w(:,k))*Dt;     % simulate state
-   y(:,k) = g(k,p0, x(:,k))+v(:,k);     % simulate observation
+   w(:,k) = gen_state_noise(noise.sigma_x);              % simulate process noise
+   v(:,k) = gen_obs_noise(noise.sigma_y);               % simulate observation noise
+   if isempty(u)
+   x(:,k) = x(:,k-1)+(f(k,p0, x(:,k-1),[])+w(:,k))*Dt;     % simulate state
+   y(:,k) = g(k,p0, x(:,k),[])+v(:,k);     % simulate observation
+   else
+   x(:,k) = x(:,k-1)+(f(k,p0, x(:,k-1),u(:,k))+w(:,k))*Dt;
+   y(:,k) = g(k,p0, x(:,k),u(:,k))+v(:,k);     % simulate observation
+   
+   end
    
 end

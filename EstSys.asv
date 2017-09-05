@@ -16,11 +16,7 @@ function [xh,yh,ph,pp,xp,yp,wpp,wxp]=EstSys(t,x0,p0,u,y,f,g,pf)
     T=length(t);                    % signal length
     Dt=mean(diff(t));               % sampling time
     nx=length(x0);                  % number of states
-    if isempty(u)
-     y0=g(t(1),p0,x0,[]);           % initial observation
-    else  
-    y0=g(t(1),p0,x0,u(:,1));    % initial observation    
-    end
+    y0=g(t(1),p0,x0);               % inizial observation
     ny=length(y0);                  % number of observation
     npar=length(p0);                % number of parameters
     np = pf.np;                              % number of particles
@@ -91,19 +87,11 @@ function [xh,yh,ph,pp,xp,yp,wpp,wxp]=EstSys(t,x0,p0,u,y,f,g,pf)
             end
             
             % marginal metropolitan hasting
-            pProposed=pp(:,k-1,i)+w;   
-            if isempty(u)
-                xpold=xp(:,k-1,i)+(f(k,pp(:,k-1,i),xp(:,k-1,i),[]))*Dt;
-                xpnew=xp(:,k-1,i)+(f(k,pProposed,xp(:,k-1,i),[]))*Dt;
-                yold=g(k,pp(:,k-1,i),xpold,[]);
-                ynew=g(k,pProposed,xpnew,[]);
-            else
-                xpold=xp(:,k-1,i)+(f(k,pp(:,k-1,i),xp(:,k-1,i),u(:,k)))*Dt;
-                xpnew=xp(:,k-1,i)+(f(k,pProposed,xp(:,k-1,i),u(:,k)))*Dt;
-                yold=g(k,pp(:,k-1,i),xpold,u(:,k));
-                ynew=g(k,pProposed,xpnew,u(:,k));
-            end
-                                  
+            pProposed=pp(:,k-1,i)+w;           
+            xpold=xp(:,k-1,i)+(f(k,pp(:,k-1,i),xp(:,k-1,i)))*Dt;
+            xpnew=xp(:,k-1,i)+(f(k,pProposed,xp(:,k-1,i)))*Dt;
+            yold=g(k,pp(:,k-1,i),xpold);
+            ynew=g(k,pProposed,xpnew);                       
             if mean((p_obs_noise (y(:,k)-ynew,0,pf.noise.sigma_y)+1e-300))>mean((p_obs_noise (y(:,k)-yold,0,pf.noise.sigma_y)+1e-300))
             wpp(k,i) = wpk(i) *mean((p_obs_noise (y(:,k)-ynew,0,pf.noise.sigma_y)+1e-300));  %%%% mean of p's yp given xp
             pp(:,k,i)=pProposed;
@@ -151,13 +139,8 @@ function [xh,yh,ph,pp,xp,yp,wpp,wxp]=EstSys(t,x0,p0,u,y,f,g,pf)
             for j=1:nx
                 w(j)=gen_state_noise(pf.noise.sigma_x(j));
             end
-            if isempty(u)
-            xp(:,k,i)=xp(:,k-1,i)+(f(k,pp(:,k,i),xp(:,k-1,i),[])+w)*Dt;
-            yp(:,k,i)=g(k,pp(:,k,i),xp(:,k,i),[]);
-            else
-            xp(:,k,i)=xp(:,k-1,i)+(f(k,pp(:,k,i),xp(:,k-1,i),u(:,k))+w)*Dt;
-            yp(:,k,i)=g(k,pp(:,k,i),xp(:,k,i),u(:,k));
-            end
+            xp(:,k,i)=xp(:,k-1,i)+(f(k,pp(:,k,i),xp(:,k-1,i))+w)*Dt;
+            yp(:,k,i)=g(k,pp(:,k,i),xp(:,k,i));
             % weights (when using the PRIOR pdf): eq 63, Ref 1
             wxp(k,i) = wxk(i) *mean((p_obs_noise (y(:,k)-yp(:,k,i),0,pf.noise.sigma_y)+1e-300));  %%%% mean of p's yp given xp
             
@@ -184,13 +167,9 @@ function [xh,yh,ph,pp,xp,yp,wpp,wxp]=EstSys(t,x0,p0,u,y,f,g,pf)
         %% Compute estimated state
 
         xh(:,k) = squeeze(xp(:,k,:))*wxk';
-        if isempty(u)
-            % filtered observation
-            yh(:,k) = g(k, ph(:,k),xh(:,k),[]);
-        else
-            % filtered observation
-            yh(:,k) = g(k, ph(:,k),xh(:,k),u(:,k));
-        end
+
+        % filtered observation
+        yh(:,k) = g(k, ph(:,k),xh(:,k));
     end
 end
 
