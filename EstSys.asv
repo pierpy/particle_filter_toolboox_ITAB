@@ -10,6 +10,7 @@
 % pf.np = number of particles
 % pf.pf.noise.type ='Gaussian';
 % pf.pf.noise.sigma_w= std of state gaussian pf.noise
+
 function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
 
     T = length(t);                    % signal length
@@ -32,6 +33,7 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
     pp = zeros(npar, T, np);
     wxp = zeros(T, np);
     wpp = [];
+
     if ~ isempty(p0)
     % initial parameters estimate
         wpp = zeros(T,np);
@@ -47,19 +49,19 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
             end
         end
         wpp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
-        wpk = 1/np*ones(np, 1);  
+        wpk = 1/np*ones(np,1);  
     end
     % initial states estimate
     xh(:, 1) = x0;
     yh(:, 1) = y0;
-    ph(:, 1) = p0(:, 1);
+    ph(:, 1) = p0(:,1);
     for j = 1: nx
         for i = 1: np                          % simulate initial particles
             xp(j,1,i) = x0(j) + random (pf.noise.type_x, 0, pf.noise.sigma_x(j));
         end
     end
     wxp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
-    wxk = 1/np*ones(np, 1);
+    wxk=1/np*ones(np,1);
     % Estimate parameters and states
     for k = 2: T
         fprintf('Time point = %d/%d\n',k,T);
@@ -69,9 +71,9 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
                 w = zeros(npar,1);
                 for j=1: npar
                     if p0(j,2)==1
-                        w(j) = random (pf.noise.type_p, 0, pf.noise.sigma_p(j));
+                    w(j) = random (pf.noise.type_p, 0, pf.noise.sigma_p(j));
                     else
-                        w(j) =0;  
+                    w(j) =0;  
                     end
                 end
                 % marginal metropolitan hasting
