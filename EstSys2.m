@@ -10,7 +10,10 @@
 % pf.np = number of particles
 % pf.pf.noise.type ='Gaussian';
 % pf.pf.noise.sigma_w= std of state gaussian pf.noise
-function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
+
+
+function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys2 (t, x0, p0, u, y, f, g, pf)
+
     T = length(t);                    % signal length
     Dt = mean(diff(t));               % sampling time
     nx = length(x0);                  % number of states
@@ -31,6 +34,7 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
     pp = zeros(npar, T, np);
     wxp = zeros(T, np);
     wpp = [];
+
     if ~ isempty(p0)
     % initial parameters estimate
         wpp = zeros(T,np);
@@ -46,52 +50,58 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
             end
         end
         wpp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
-        wpk = 1/np*ones(np, 1);  
+        wpk = 1/np*ones(np,1);  
     end
     % initial states estimate
     xh(:, 1) = x0;
     yh(:, 1) = y0;
-    ph(:, 1) = p0(:, 1);
+    ph(:, 1) = p0(:,1);
     for j = 1: nx
         for i = 1: np                          % simulate initial particles
             xp(j,1,i) = x0(j) + random (pf.noise.type_x, 0, pf.noise.sigma_x(j));
         end
     end
     wxp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
-    wxk = 1/np*ones(np, 1);
+    wxk=1/np*ones(np,1);
     % Estimate parameters and states
     for k = 2: T
         fprintf('Time point = %d/%d\n',k,T);
         if ~ isempty(p0)
             % parameters estimates with metropolitan marginal hasting
             for i = 1: size(pp,3)
-                w = zeros(npar,1);
+                w = zeros(200,npar);
                 for j=1: npar
                     if p0(j,2)==1
-                        w(j) = random (pf.noise.type_p, 0, pf.noise.sigma_p(j));
-                    else
-                        w(j) =0;  
+                    w(:,j) = random (pf.noise.type_p, 0, pf.noise.sigma_p(j),[200 1]);
+
                     end
                 end
-                % marginal metropolitan hasting
-                pProposed = pp(:,k-1,i) + w;
-                if isempty(u)
-                    xpold = xp(:, k-1, i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), [])) * Dt;
-                    xpnew = xp(:, k-1, i) + (f(k, pProposed, xp(:,k-1,i), [])) * Dt;
-                    yold = g(k, pp(:, k-1, i), xpold, []);
-                    ynew = g(k, pProposed, xpnew, []);
-                else
-                    xpold = xp(:, k-1,i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), u(:,k))) * Dt;
-                    xpnew = xp(:, k-1,i) + (f(k, pProposed, xp(:,k-1,i), u(:,k))) * Dt;
-                    yold = g(k, pp(:,k-1,i), xpold, u(:,k));
-                    ynew = g(k, pProposed, xpnew, u(:,k));
-                end
-                if evalpdfobs( y(:,k), ynew, pf.noise ) > evalpdfobs( y(:,k), yold, pf.noise )
-                    wpp(k,i) = wpk(i) * evalpdfobs( y(:,k), ynew, pf.noise );  %%%% mean of p's yp given xp
-                    pp(:,k,i) = pProposed;
-                else
-                    wpp(k,i) = wpk(i) * evalpdfobs( y(:,k), yold, pf.noise );  %%%% mean of p's yp given xp
-                    pp(:,k,i) = pp(:,k-1,i);
+                
+                
+                for ii=1:sum(p0(:,2)==1)
+                    % marginal metropolitan hasting
+                    for jj=1:200
+                        pProposed = pp(:,k-1,i) + w();
+                        if isempty(u)
+                            xpold = xp(:, k-1, i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), [])) * Dt;
+                            xpnew = xp(:, k-1, i) + (f(k, pProposed, xp(:,k-1,i), [])) * Dt;
+                            yold = g(k, pp(:, k-1, i), xpold, []);
+                            ynew = g(k, pProposed, xpnew, []);
+                        else
+                            xpold = xp(:, k-1,i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), u(:,k))) * Dt;
+                            xpnew = xp(:, k-1,i) + (f(k, pProposed, xp(:,k-1,i), u(:,k))) * Dt;
+                            yold = g(k, pp(:,k-1,i), xpold, u(:,k));
+                            ynew = g(k, pProposed, xpnew, u(:,k));
+                        end
+                        if evalpdfobs( y(:,k), ynew, pf.noise ) > evalpdfobs( y(:,k), yold, pf.noise )
+                            wpp(k,i) = wpk(i) * evalpdfobs( y(:,k), ynew, pf.noise );  %%%% mean of p's yp given xp
+                            pp(:,k,i) = pProposed;
+                        else
+                            wpp(k,i) = wpk(i) * evalpdfobs( y(:,k), yold, pf.noise );  %%%% mean of p's yp given xp
+                            pp(:,k,i) = pp(:,k-1,i);
+                        end
+                    end
+                    
                 end
             end
             % Normalize weight vector

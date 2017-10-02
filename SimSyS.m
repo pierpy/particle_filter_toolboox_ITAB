@@ -20,7 +20,11 @@ function [x,y] = SimSys(t, x0, p0, u, f, g, noise)
 T = length(t);                    % simulation length
 Dt = mean(diff(t));               % sampling time
 nx = length(x0);                  % number of states
-y0 = g(t(1),p0(:,1),x0);               % inizial observation
+if isempty(u)
+    y0 = g(t(1), p0(:,1), x0, []);           % initial observation
+else
+    y0 = g(t(1), p0(:,1), x0, u(:,1));    % initial observation
+end              % inizial observation
 ny = length(y0);                  % number of observation
 % initialization of state, observation and noise
 x = zeros(nx,T);               
@@ -42,7 +46,7 @@ for k = 2:T
        x(:,k) = x(:,k-1) + (f(k,p0(:,1), x(:,k-1),[]) + w(:,k))*Dt;     % simulate state
        y(:,k) = g(k,p0(:,1), x(:,k),[])+v(:,k);     % simulate observation
    else
-       x(:,k) = x(:,k-1) + (f(k,p0(:,1), x(:,k-1),u(:,k)) + w(:,k))*Dt;
+       x(:,k) = x(:,k-1) + (f(k, p0(:,1), x(:,k-1), u(:,k)) + w(:,k))*Dt;
        y(:,k) = g(k,p0(:,1), x(:,k), u(:,k)) +v(:,k);     % simulate observation
    end
 end

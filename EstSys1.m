@@ -11,7 +11,8 @@
 % pf.pf.noise.type ='Gaussian';
 % pf.pf.noise.sigma_w= std of state gaussian pf.noise
 
-function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
+
+function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys1 (t, x0, p0, u, y, f, g, pf)
 
     T = length(t);                    % signal length
     Dt = mean(diff(t));               % sampling time
@@ -36,9 +37,10 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
 
     if ~ isempty(p0)
     % initial parameters estimate
-        wpp = zeros(T,np);
+    npar = size(ph,1);
+        wpp = zeros(npar,T,np);
         ph(:,1) = p0(:,1);   
-        npar = size(ph,1);
+        
         for j =1: npar
             for i = 1: np    % simulate initial particles
                 if p0(j,2)==1
@@ -48,7 +50,7 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
                 end
             end
         end
-        wpp(1,:) = repmat(1/np, np, 1);           % all particles have the same weight
+        wpp(j,1,:) = repmat(1/np, np, 1);           % all particles have the same weight
         wpk = 1/np*ones(np,1);  
     end
     % initial states estimate
@@ -67,58 +69,61 @@ function [xh, yh, ph, pp, xp, yp, wpp, wxp] = EstSys (t, x0, p0, u, y, f, g, pf)
         fprintf('Time point = %d/%d\n',k,T);
         if ~ isempty(p0)
             % parameters estimates with metropolitan marginal hasting
-            for i = 1: size(pp,3)
-                w = zeros(npar,1);
-                for j=1: npar
-                    if p0(j,2)==1
-                    w(j) = random (pf.noise.type_p, 0, pf.noise.sigma_p(j));
-                    else
-                    w(j) =0;  
+            pp(:,k,:)=pp(:,k-1,:);
+            
+            for j=1: npar
+                if p0(j,2)==1
+                     wpk = 1/np*ones(np,1);  
+                    for i = 1: size(pp,3)
+                        
+                        
+                        
+                        w = random (pf.noise.type_p, 0, pf.noise.sigma_p(j));
+                        
+                        
+                        % marginal metropolitan hasting
+                        pProposed=pp(:,k,i);
+                        pProposed(j)= pp(j,k,i)+w;
+                        if isempty(u)
+                            xpold = xp(:, k-1, i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), [])) * Dt;
+                            xpnew = xp(:, k-1, i) + (f(k, pProposed, xp(:,k-1,i), [])) * Dt;
+                            yold = g(k, pp(:, k-1, i), xpold, []);
+                            ynew = g(k, pProposed, xpnew, []);
+                        else
+                            xpold = xp(:, k-1,i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), u(:,k))) * Dt;
+                            xpnew = xp(:, k-1,i) + (f(k, pProposed, xp(:,k-1,i), u(:,k))) * Dt;
+                            yold = g(k, pp(:,k-1,i), xpold, u(:,k));
+                            ynew = g(k, pProposed, xpnew, u(:,k));
+                        end
+                        if evalpdfobs( y(:,k), ynew, pf.noise ) > evalpdfobs( y(:,k), yold, pf.noise )
+                            wpp(j,k,i) = wpk(i) * evalpdfobs( y(:,k), ynew, pf.noise );  %%%% mean of p's yp given xp
+                            pp(:,k,i) = pProposed;
+                        else
+                            wpp(j,k,i) = wpk(i) * evalpdfobs( y(:,k), yold, pf.noise );  %%%% mean of p's yp given xp
+                            
+                        end
                     end
+                    % Normalize weight vector
+                    wpp(j,k,:) = wpp(j,k,:)./sum(wpp(j,k,:), 3);
+                    wpk = squeeze(wpp(j,k,:))';
+                    
+                    pk=squeeze(pp(j,k,:));
+                    
+                    Neff = 1/sum(squeeze(wpk.^2));
+                    resample_percentage = 0.5;
+                    Nt = resample_percentage * np;
+                    if Neff < Nt
+                        % Resampling
+                        disp('Parameters Particles Resampling ...')
+                        % remove this condition and sample on each iteration:
+                        [pp(j,k,:), wpk,~] = resample(pk', squeeze(wpk)', pf.resampling_strategy);
+                        
+                    end
+                    
+                    
+                    ph(j,k) = squeeze(pp(j,k,:))'*squeeze(wpk)';
                 end
-                % marginal metropolitan hasting
-                pProposed = pp(:,k-1,i) + w;
-                if isempty(u)
-                    xpold = xp(:, k-1, i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), [])) * Dt;
-                    xpnew = xp(:, k-1, i) + (f(k, pProposed, xp(:,k-1,i), [])) * Dt;
-                    yold = g(k, pp(:, k-1, i), xpold, []);
-                    ynew = g(k, pProposed, xpnew, []);
-                else
-                    xpold = xp(:, k-1,i) + (f(k, pp(:,k-1,i), xp(:,k-1,i), u(:,k))) * Dt;
-                    xpnew = xp(:, k-1,i) + (f(k, pProposed, xp(:,k-1,i), u(:,k))) * Dt;
-                    yold = g(k, pp(:,k-1,i), xpold, u(:,k));
-                    ynew = g(k, pProposed, xpnew, u(:,k));
-                end
-                if evalpdfobs( y(:,k), ynew, pf.noise ) > evalpdfobs( y(:,k), yold, pf.noise )
-                    wpp(k,i) = wpk(i) * evalpdfobs( y(:,k), ynew, pf.noise );  %%%% mean of p's yp given xp
-                    pp(:,k,i) = pProposed;
-                else
-                    wpp(k,i) = wpk(i) * evalpdfobs( y(:,k), yold, pf.noise );  %%%% mean of p's yp given xp
-                    pp(:,k,i) = pp(:,k-1,i);
-                end
-            end
-            % Normalize weight vector
-            wpp(k,:) = wpp(k,:)./sum(wpp(k,:), 2);
-            wpk = wpp(k,:);
-            if npar == 1
-                pk=squeeze(pp(:,k,:))';
-            else
-                pk=squeeze(pp(:,k,:));        
-            end
-            Neff = 1/sum(wpk.^2);
-            resample_percentage = 0.5;
-            Nt = resample_percentage * np;
-            if Neff < Nt
-            % Resampling
-                disp('Parameters Particles Resampling ...')
-                % remove this condition and sample on each iteration:
-                [pp(:,k,:), wpk,~] = resample(pk, wpk', pf.resampling_strategy);
-            end
-
-            if size(pp,1) == 1
-                ph(:,k) = squeeze(pp(:,k,:))'*wpk';
-            else
-                ph(:,k) = squeeze(pp(:,k,:))*wpk';
+                
             end
         end
         % states estimates
