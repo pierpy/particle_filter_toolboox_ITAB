@@ -33,7 +33,7 @@ pf.noise.type = 'Gaussian';
 pf.resampling_strategy = 'multinomial_resampling';
 x0 = [0];
 
-
+labels  = 1;
 % tic 
 % p1values = -0.00001:-0.01:-0.5;
 
@@ -52,19 +52,20 @@ x0 = [0];
 %         clear uwxp
 %     end
 % end
-[ xh, yh, uwxp, wxp, xp, xpnr ] = particlefilter( t, x0, p0, u, y, f, g, pf );
-[ J, xps, xhs] = particlesmoother( t, p0, u, f, xp, pf );
-%  if sum(labels > 0)
-%      [ loglikelihood, ph ] = pmh( t, x0, p, labels, niter, u, y, f, g, pf );
-%  end
+% [ xh, yh, uwxp, wxp, xp ] = particlefilter( t, x0, p0, u, y, f, g, pf );
+% [ J, xps, xhs] = particlesmoother( t, p0, u, f, xp, pf );
+p = [0.3]
+ if sum(labels > 0)
+     [ loglikelihood, ph ] = pmh( t, x0, p, labels, niter, u, y, f, g, pf );
+ end
 % toc
 % % PlotPF_Res(t,p0,ph,pp,wpp,x,xh,xp,wxp,y,yh)
-figure
-plot(x)
-hold on
-plot(xh, 'r')
-hold on
-plot(xhs, 'g')
-
-rf = rms(x-xh)
-rs = rms(x-xhs)
+% figure
+% plot(x)
+% hold on
+% plot(xh, 'r')
+% hold on
+% plot(xhs, 'g')
+% 
+% rf = rms(x-xh)
+% rs = rms(x-xhs)

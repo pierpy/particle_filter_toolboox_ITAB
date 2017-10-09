@@ -16,9 +16,9 @@ alpha = 0.3663; %stiffness
 E0 = 0.4865; % resting Oxygen extraction
 %lambda=-0.3; % autocorrelation neuronal
 
-t = (1:600)/10; % simulation time
+t = (1:120); % simulation time
 u = zeros(1,length(t)); % deterministic inplut
-u(1,[100 400]) = 0.1; 
+u(1, [10: 30: end]) = 10^-3; 
 x0 = [0 1 1 1]; % initial state 
 
 p0 = zeros(6,1); % create true parameters vector
@@ -35,7 +35,7 @@ g = @(t, p, x, u) [ x(3); x(4) ]; % observation function
 
 % noise structure for simulaton 
 noise.sigma_x = [0 0 0 0 0]; % no noise on the simulated states
-noise.sigma_y = [0.00001 0.00001 0.00001 0.00001]; % observation noise
+noise.sigma_y = [0.0001 0.0001 0.0001 0.0001]; % observation noise
 
 % distribution noise type
 noise.type_x = 'Normal'; 
@@ -49,7 +49,7 @@ labels(1) = 0;
 labels(2) = 0;
 labels(3) = 0;
 labels(4) = 1;
-labels(5) = 0;
+labels(5) = 1;
 labels(6) = 0;
 
 noise.sigma_p = [ 0.1 0.01 0.01 0.1 0.01 0.01 ]; % noise variance on parameters
@@ -57,21 +57,26 @@ noise.sigma_p = [ 0.1 0.01 0.01 0.1 0.01 0.01 ]; % noise variance on parameters
 
 niter = 100;
 p = p0;
+p(1) = epsilon;
+p(2) = kas;
+p(3) = kaf;
+p(4) = tau0;
+p(5) = alpha;
+p(6) = E0;
+p = p./1.2; % inital parameter guess
 pf.noise = noise; % structure for particlefilter function
 pf.resampling_strategy = 'systematic_resampling';
-pf.np = 200; 
+pf.np = 500; 
 pf.noise.type_x = 'Normal';
 pf.noise.sigma_x = [ 0.001 0.001 0.001 0.001 ]; % state evolution noise
-pf.R = diag([0.000001 0.000001]);
-pf.Q = diag([0.001 0.01 0.01 0.001]);
-noise.sigma_y = [ 0.00001 0.00001 0.00001 0.00001 ]; % observation noise
+noise.sigma_y = [ 0.0001 0.0001 0.0001 0.0001 ]; % observation noise
 
-%[ xh , loglikelihoodProposed ]  = particlefilter( t, x0, p, u, y, f, g, pf );
-% [ loglikelihood, theta, proposedThetaAccepted ] = pmh2( t, x0, p, labels, niter, u, y, f, g, pf, 0.01 );
-tic
-[ xh , loglikelihoodProposed, particles ]  = pFilter( t, x0, p0, u, y, f, g, pf );
- toc
-str = ppss(pf.Q, pf.np, particles, u, f, g, p);
+[ xh, yh, uwxp, wxp, xp ] = particlefilter( t, x0, p0, u, y, f, g, pf );
+
+ if sum(labels > 0)
+     [ loglikelihood, ph ] = pmh( t, x0, p, labels, niter, u, y, f, g, pf );
+ end
+ 
 % check if loglikelihood follows parameters.
 % p4values = 0.1:0.01:0.6;
 % 

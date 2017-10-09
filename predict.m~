@@ -1,0 +1,15 @@
+function [ predictedParticles ] = predictParticles(t, pastParticles , evolutionFunction , input)
+%UNTITLED2 Summary of this function goes here
+%   Detailed explanation goes here
+    for i = 1: size(pastParticles, 2)
+        if isempty(u)
+            xp(:, k, i) = xp(:, k-1, i) + (f(k, p0, xp(:,k-1,i), []) + w) * Dt;
+            yp(:, k, i) = g(k, p0, xp(:, k, i), []);
+        else
+            xp(:, k, i) = xp(:, k-1, i) + (f(k, p0, xp(:,k-1,i), u(:,k)) + w) * Dt;
+            yp(:, k, i) = g(k, p0, xp(:, k, i), u(:,k));
+        end
+    end
+
+end
+

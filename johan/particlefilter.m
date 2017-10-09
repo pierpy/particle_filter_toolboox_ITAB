@@ -1,4 +1,4 @@
-function [ xh, loglikelihood ] = particlefilter( t, x0, p0, u, y, f, g, pf )
+function [ xh, yh, uwxp, wxp, xp ] = particlefilter( t, x0, p0, u, y, f, g, pf )
 %UNTITLED3 Summary of this function goes here
     %   Detailed explanation goes here
     T = length(t);                    % signal length
@@ -22,7 +22,6 @@ function [ xh, loglikelihood ] = particlefilter( t, x0, p0, u, y, f, g, pf )
     uwxp = zeros(T,np);
     xh(:, 1) = x0;
     yh(:, 1) = y0;
-    loglikelihood = 0;
     for j = 1: nx
         for i = 1: np                          % simulate initial particles
             xp(j,1,i) = x0(j) + random (pf.noise.type_x, 0, pf.noise.sigma_x(j));
@@ -51,7 +50,7 @@ function [ xh, loglikelihood ] = particlefilter( t, x0, p0, u, y, f, g, pf )
             
         end
         % Normalize weight vector
-        maxw = max(wxp(k,:));
+        uwxp(k,:) = wxp(k,:);
         wxp(k,:) = wxp(k,:)./sum(wxp(k,:),2);
         wxk = wxp(k,:);
         xk = squeeze(xp(:,k,:));        
@@ -77,37 +76,35 @@ function [ xh, loglikelihood ] = particlefilter( t, x0, p0, u, y, f, g, pf )
             % filtered observation
             yh(:,k) = g(k, p0, xh(:,k), u(:,k));
         end
-        predectivelikelihood = maxw + log(sum(wxp(k,:),2)) - log(np);
-        loglikelihood = loglikelihood + predectivelikelihood;
     end
 %     loglikelihood = sum(log((sum(uwxp,2))));
 end
 %% Resampling function
 function [xk, wk, idx] = resample(xk, wk, resampling_strategy)
-Ns = length(wk);  % Ns = number of particles
-switch resampling_strategy
-    case 'multinomial_resampling'
-        with_replacement = true;
-        idx = randsample(1:Ns, Ns, with_replacement, wk);
-    case 'systematic_resampling'
-        % this is performing latin hypercube sampling on wk
-        edges = min([0 cumsum(wk)'],1); % protect against accumulated round-off
-        edges(end) = 1;                 % get the upper edge exact
-        u1 = rand/Ns;
-        [~, idx] = histc(u1:1/Ns:1, edges);
-    case 'percentile_resampling'
-        % this is performing latin hypercube sampling on wk
-        p=10;
-        good_p(:,1)=find(wk>prctile(wk,p));
-    otherwise
-        error('Resampling strategy not implemented')
-end
-if size(xk,2)==1
-    xk = xk(idx,:);
-    wk = repmat(1/Ns,1,Ns);
-else
-    xk = xk(:,idx);
-    wk = repmat(1/Ns,1,Ns);
-end
+    Ns = length(wk);  % Ns = number of particles
+    switch resampling_strategy
+        case 'multinomial_resampling'
+            with_replacement = true;
+            idx = randsample(1:Ns, Ns, with_replacement, wk);
+        case 'systematic_resampling'
+            % this is performing latin hypercube sampling on wk
+            edges = min([0 cumsum(wk)'],1); % protect against accumulated round-off
+            edges(end) = 1;                 % get the upper edge exact
+            u1 = rand/Ns;
+            [~, idx] = histc(u1:1/Ns:1, edges);
+        case 'percentile_resampling'
+            % this is performing latin hypercube sampling on wk
+            p=10;
+            good_p(:,1)=find(wk>prctile(wk,p));
+        otherwise
+            error('Resampling strategy not implemented')
+    end
+    if size(xk,2)==1
+        xk = xk(idx,:);
+        wk = repmat(1/Ns,1,Ns);
+    else
+        xk = xk(:,idx);
+        wk = repmat(1/Ns,1,Ns);
+    end
 
 end

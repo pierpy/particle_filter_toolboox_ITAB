@@ -5,7 +5,7 @@ function [ J, xps, xhs] = particlesmoother( t, p0, u, f, xp, pf )
     T = length(t);
     np = size(xp, 3);
     nx = size(xp, 1);
-    % creo la matrice delle covariaze che mi servirà per calcolo pdf
+    % creo la matrice delle covariaze che mi servir? per calcolo pdf
     Qx = diag(pf.noise.sigma_x);
     Qy = diag(pf.noise.sigma_y);
     Qp = diag(pf.noise.sigma_p);    
@@ -31,7 +31,7 @@ function [ J, xps, xhs] = particlesmoother( t, p0, u, f, xp, pf )
                 if isempty(u)
                     w = xt1 - f(t, p0, xt, []) - xt;
                 else
-                w = xt1 - f(t, p0, xt, u(:,t)) - xt;
+                    w = xt1 - f(t, p0, xt, u(:,t)) - xt;
                 end
 %                 target = mvnpdf(w', 0, Qx);
                 target = exp(-0.5*w'*Qx*w); 

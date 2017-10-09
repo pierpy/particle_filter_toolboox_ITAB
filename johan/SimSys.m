@@ -43,10 +43,10 @@ for k = 2:T
         v(i,k) = random (noise.type_y, 0, noise.sigma_y(i));    
     end% simulate observation noise
    if isempty(u)
-       x(:,k) = x(:, k-1) + (f(k, p0(:,1), x(:,k-1),[]) + w(:,k))*Dt;     % simulate state
-       y(:,k) = g(k, p0(:,1), x(:,k),[])+v(:,k);     % simulate observation
+       x(:,k) = x(:,k-1) + (f(k,p0(:,1), x(:,k-1),[]) + w(:,k))*Dt;     % simulate state
+       y(:,k) = g(k,p0(:,1), x(:,k),[])+v(:,k);     % simulate observation
    else
-       x(:,k) = x(:, k-1) + (f(k, p0(:,1), x(:,k-1), u(:,k)) + w(:,k))*Dt;
-       y(:,k) = g(k, p0(:,1), x(:,k), u(:,k)) + v(:,k);     % simulate observation
+       x(:,k) = x(:,k-1) + (f(k, p0(:,1), x(:,k-1), u(:,k)) + w(:,k))*Dt;
+       y(:,k) = g(k,p0(:,1), x(:,k), u(:,k)) +v(:,k);     % simulate observation
    end
 end
